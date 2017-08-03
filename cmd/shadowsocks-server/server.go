@@ -16,8 +16,10 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"net/http"
 
 	ss "github.com/shadowsocks/shadowsocks-go/shadowsocks"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 const (
@@ -450,6 +452,15 @@ func main() {
 			go runUDP(port, password, config.Auth)
 		}
 	}
+
+	// health check && metrics
+	m := http.NewServeMux()
+	m.HandleFunc("/health_check", func(w http.ResponseWriter, req *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("ok"))
+	})
+	m.Handle("/metrics", promhttp.Handler())
+	http.ListenAndServe(":8088", m)
 
 	waitSignal()
 }
